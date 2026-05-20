@@ -1,0 +1,10 @@
+{
+  "name": "looksy-backend",
+  "version": "1.0.0",
+  "description": "Looksy AI backend on Vercel",
+  "main": "api/recommendations.js",
+  "type": "module",
+  "engines": {
+    "node": "20.x"
+  }
+}
