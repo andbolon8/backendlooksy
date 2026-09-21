@@ -128,10 +128,45 @@ export default async function handler(req, res) {
       return res.status(504).json({ error: 'Сервис не успел сгенерировать изображение' });
     }
 
-    return res.status(200).json({
-      url: outputUrl,
-      mode: safeMode,
-    });
+    // ВАЖНО: раньше мы возвращали URL приложению, чтобы оно скачивало картинку
+    // напрямую с CDN Replicate. Но у российских юзеров это часто не работает —
+    // провайдер/VPN обрывает соединение к иностранному CDN, юзер видит
+    // "Скачивание прервалось" при том что картинка уже сгенерирована и оплачена.
+    //
+    // Теперь бэкенд сам скачивает картинку (Vercel находится вне России —
+    // ему CDN доступен) и возвращает её как base64. Приложение больше
+    // не ходит к CDN, только к нашему Vercel — а с ним связь стабильная.
+    try {
+      const imgRes = await fetch(outputUrl, {
+        headers: { 'User-Agent': 'Looksy-Backend/1.0' },
+      });
+      if (!imgRes.ok) {
+        console.error(`CDN fetch failed ${imgRes.status}: ${outputUrl}`);
+        return res.status(502).json({
+          error: 'Картинка сгенерирована, но не удалось её получить с CDN',
+          url: outputUrl,  // на всякий случай для отладки
+        });
+      }
+      const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+      const buf = Buffer.from(await imgRes.arrayBuffer());
+      const base64 = buf.toString('base64');
+
+      return res.status(200).json({
+        imageBase64: base64,
+        contentType,
+        mode: safeMode,
+        // url оставляем для обратной совместимости — старые клиенты
+        // (до v3.18) продолжат работать по URL
+        url: outputUrl,
+      });
+    } catch (fetchErr) {
+      console.error('Fetch CDN failed:', fetchErr);
+      // Fallback: возвращаем URL как раньше, пусть клиент попробует сам
+      return res.status(200).json({
+        url: outputUrl,
+        mode: safeMode,
+      });
+    }
   } catch (e) {
     console.error('image-edit error:', e);
     return res.status(500).json({ error: 'Internal error' });
