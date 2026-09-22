@@ -58,7 +58,7 @@ export default async function handler(req, res) {
   if (!prompt || typeof prompt !== 'string') {
     return res.status(400).json({ error: 'prompt required' });
   }
-  if (prompt.length > 500) {
+  if (prompt.length > 1500) {
     return res.status(400).json({ error: 'prompt too long' });
   }
   // mode: "hairstyle" | "improve" — для логов и возможных будущих веток
