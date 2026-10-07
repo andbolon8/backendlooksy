@@ -57,7 +57,7 @@ export default async function handler(req, res) {
   }
 
   // --- Rate limit по IP ---
-  const ip = (req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
+  const ip = (req.headers['x-client-ip'] || req.headers['x-forwarded-for'] || 'unknown').split(',')[0].trim();
   if (!checkRateLimit(ip)) {
     return res.status(429).json({ error: 'Too many requests. Try again in a minute.' });
   }
