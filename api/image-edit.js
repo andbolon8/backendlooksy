@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   }
 
   // Rate limit
-  const ip = req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown';
+  const ip = (req.headers['x-client-ip'] || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown').split(',')[0].trim();
   if (!checkRateLimit(ip)) {
     return res.status(429).json({ error: 'Слишком много запросов. Подожди минуту.' });
   }
